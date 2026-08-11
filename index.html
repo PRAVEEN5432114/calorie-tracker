@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>FitTrack - Calorie & Activity</title>
+    <meta name="description" content="Personal Calorie and Activity Tracker">
+    <link rel="stylesheet" href="style.css">
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <!-- Ionicons for Icons -->
+    <script type="module" src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.esm.js"></script>
+    <script nomodule src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.js"></script>
+</head>
+<body>
+    <div class="app-container">
+        
+        <header>
+            <div class="logo">
+                <ion-icon name="fitness-outline"></ion-icon>
+                <h1>FitTrack</h1>
+            </div>
+            <button id="theme-toggle" aria-label="Toggle Dark Mode">
+                <ion-icon name="moon-outline" id="theme-icon"></ion-icon>
+            </button>
+        </header>
+
+        <main>
+            <!-- Dashboard / Summary -->
+            <section class="dashboard card glass">
+                <div class="date-selector">
+                    <button id="prev-day"><ion-icon name="chevron-back"></ion-icon></button>
+                    <h2 id="current-date">Today</h2>
+                    <button id="next-day" disabled><ion-icon name="chevron-forward"></ion-icon></button>
+                </div>
+
+                <div class="summary-rings">
+                    <div class="stat-box primary">
+                        <ion-icon name="restaurant"></ion-icon>
+                        <span class="stat-value" id="total-cal-in">0</span>
+                        <span class="stat-label">Consumed</span>
+                    </div>
+                    <div class="stat-box net">
+                        <div class="net-circle">
+                            <span class="stat-value" id="net-cal">0</span>
+                            <span class="stat-label">Net Cal</span>
+                        </div>
+                    </div>
+                    <div class="stat-box secondary">
+                        <ion-icon name="flame"></ion-icon>
+                        <span class="stat-value" id="total-cal-out">0</span>
+                        <span class="stat-label">Burned</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Action Tabs -->
+            <div class="tabs">
+                <button class="tab-btn active" data-target="food-section">Add Food</button>
+                <button class="tab-btn" data-target="activity-section">Add Activity</button>
+            </div>
+
+            <!-- Add Food Section -->
+            <section id="food-section" class="input-section card glass active-section">
+                <h3><ion-icon name="fast-food-outline"></ion-icon> What did you eat?</h3>
+                <div class="input-group autocomplete-container">
+                    <label for="food-input">Search Food Name</label>
+                    <input type="text" id="food-input" placeholder="e.g., Apple, 2 slices of Pizza" autocomplete="off">
+                    <ul id="food-suggestions" class="suggestions-list"></ul>
+                </div>
+                
+                <div class="input-row">
+                    <div class="input-group">
+                        <label for="food-calories">Calories</label>
+                        <input type="number" id="food-calories" placeholder="kcal">
+                    </div>
+                    <button id="add-food-btn" class="btn primary-btn"><ion-icon name="add"></ion-icon></button>
+                </div>
+            </section>
+
+            <!-- Add Activity Section -->
+            <section id="activity-section" class="input-section card glass" style="display: none;">
+                <h3><ion-icon name="bicycle-outline"></ion-icon> What did you do?</h3>
+                <div class="input-group autocomplete-container">
+                    <label for="activity-input">Search Activity</label>
+                    <input type="text" id="activity-input" placeholder="e.g., Walking, Running" autocomplete="off">
+                    <ul id="activity-suggestions" class="suggestions-list"></ul>
+                </div>
+
+                <div class="input-row">
+                    <div class="input-group">
+                        <label for="activity-duration">Duration (mins)</label>
+                        <input type="number" id="activity-duration" placeholder="Mins">
+                    </div>
+                    <div class="input-group">
+                        <label for="activity-calories">Est. Burn</label>
+                        <input type="number" id="activity-calories" placeholder="kcal">
+                    </div>
+                    <button id="add-activity-btn" class="btn secondary-btn"><ion-icon name="add"></ion-icon></button>
+                </div>
+            </section>
+
+            <!-- Log / History -->
+            <section class="log-section">
+                <h3>Today's Log</h3>
+                <div class="log-list" id="log-list">
+                    <!-- Log items will be injected here via JS -->
+                    <div class="empty-state">
+                        <ion-icon name="document-text-outline"></ion-icon>
+                        <p>No entries yet today. Start tracking!</p>
+                    </div>
+                </div>
+            </section>
+
+        </main>
+    </div>
+
+    <!-- Data bases -->
+    <script src="food_db.js"></script>
+    <script src="activity_db.js"></script>
+    <!-- App Logic -->
+    <script src="app.js"></script>
+</body>
+</html>
