@@ -15,6 +15,11 @@ let currentDate = new Date().toISOString().split('T')[0];
 function init() {
     appData = StorageUtils.getData();
     
+    // Safety checks against corrupted localStorage
+    if (!appData) appData = { settings: { calorieTarget: 2000, theme: 'cyber' }, days: {} };
+    if (!appData.settings) appData.settings = { calorieTarget: 2000, theme: 'cyber' };
+    if (!appData.days) appData.days = {};
+    
     // Ensure today exists
     if (!appData.days[currentDate]) {
         appData.days[currentDate] = { foods: [], exercises: [], weight: null };
@@ -311,12 +316,14 @@ function setupAutocompletes() {
                 const div = document.createElement('div');
                 div.className = 'sugg-item';
                 div.innerHTML = `${m.name} <span>${m.calories} KCAL</span>`;
-                div.onpointerdown = (ev) => {
-                    ev.preventDefault(); // Prevents input blur on mobile
+                const selectFood = (ev) => {
+                    ev.preventDefault(); // Prevents input blur
                     fInp.value = m.name;
                     fCal.value = m.calories;
                     fSugg.style.display = 'none';
                 };
+                div.onmousedown = selectFood;
+                div.ontouchstart = selectFood;
                 fSugg.appendChild(div);
             });
         } else {
@@ -345,13 +352,15 @@ function setupAutocompletes() {
                 const div = document.createElement('div');
                 div.className = 'sugg-item';
                 div.innerHTML = `${m.name} <span>~${m.caloriesPerMinute}/MIN</span>`;
-                div.onpointerdown = (ev) => {
+                const selectEx = (ev) => {
                     ev.preventDefault();
                     eInp.value = m.name;
                     currentEx = m;
                     updateExCal();
                     eSugg.style.display = 'none';
                 };
+                div.onmousedown = selectEx;
+                div.ontouchstart = selectEx;
                 eSugg.appendChild(div);
             });
         } else {
