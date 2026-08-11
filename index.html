@@ -3,357 +3,218 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>FitTrack - Indian Nutrition & Fitness</title>
-    <meta name="description" content="Your Personal Indian Nutrition & Fitness Coach">
-    <meta name="theme-color" content="#4ade80">
+    <title>FitTrack - Health System</title>
+    <meta name="theme-color" content="#02060A">
     <link rel="manifest" href="./manifest.json">
     <link rel="stylesheet" href="./style.css">
-    
-    <!-- Google Fonts -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    
-    <!-- Ionicons -->
-    <script type="module" src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.esm.js"></script>
-    <script nomodule src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.js"></script>
 </head>
 <body>
 
-    <!-- Onboarding Modal -->
-    <div id="onboarding-modal" class="modal-overlay hidden">
-        <div class="modal-content card glass">
-            <h2>Welcome to FitTrack</h2>
-            <p>Let's set up your profile for accurate targets.</p>
-            
-            <div class="input-group">
-                <label>Name</label>
-                <input type="text" id="setup-name" placeholder="E.g. Rahul">
-            </div>
-            
-            <div class="input-row">
-                <div class="input-group">
-                    <label>Age</label>
-                    <input type="number" id="setup-age" placeholder="Years">
-                </div>
-                <div class="input-group">
-                    <label>Gender</label>
-                    <select id="setup-gender">
-                        <option value="male">Male</option>
-                        <option value="female">Female</option>
-                    </select>
-                </div>
-            </div>
-
-            <div class="input-row">
-                <div class="input-group">
-                    <label>Weight (kg)</label>
-                    <input type="number" id="setup-weight" placeholder="kg">
-                </div>
-                <div class="input-group">
-                    <label>Height (cm)</label>
-                    <input type="number" id="setup-height" placeholder="cm">
-                </div>
-            </div>
-
-            <div class="input-group">
-                <label>Activity Level</label>
-                <select id="setup-activity">
-                    <option value="sedentary">Sedentary (Little/No Exercise)</option>
-                    <option value="light">Light (Exercise 1-3 days/wk)</option>
-                    <option value="moderate">Moderate (Exercise 3-5 days/wk)</option>
-                    <option value="active">Active (Exercise 6-7 days/wk)</option>
-                    <option value="very_active">Very Active (Physical Job)</option>
-                </select>
-            </div>
-
-            <div class="input-group">
-                <label>Main Goal</label>
-                <select id="setup-goal">
-                    <option value="lose_fast">Lose Weight (Fast)</option>
-                    <option value="lose_steady">Lose Weight (Steady)</option>
-                    <option value="maintain">Maintain Weight</option>
-                    <option value="build_muscle">Build Muscle</option>
-                    <option value="gain_weight">Gain Weight</option>
-                </select>
-            </div>
-
-            <button id="finish-setup-btn" class="btn primary-btn full-width">Start Tracking</button>
-        </div>
-    </div>
-
-    <!-- App Container -->
     <div class="app-container">
         
         <!-- Header -->
         <header>
             <div class="logo">
-                <ion-icon name="fitness"></ion-icon>
-                <h1>FitTrack</h1>
+                <h1>FITTRACK</h1>
+                <p>PERSONAL HEALTH SYSTEM</p>
             </div>
-            <button id="theme-toggle" aria-label="Toggle Dark Mode">
-                <ion-icon name="moon-outline" id="theme-icon"></ion-icon>
-            </button>
+            <div class="sys-status">
+                STATUS / <span>ONLINE</span><br>
+                DATA / LOCAL
+            </div>
         </header>
 
-        <!-- Main Content Area -->
-        <main id="main-content">
-            
-            <!-- HOME TAB -->
-            <section id="tab-home" class="page-section active-section">
-                
-                <div class="greeting">
-                    <h2 id="user-greeting">Good morning 👋</h2>
-                    <p class="date-display" id="dashboard-date">Today</p>
-                </div>
-
-                <div class="card glass dashboard-summary">
-                    <div class="cal-ring-container">
-                        <svg viewBox="0 0 36 36" class="circular-chart green">
-                            <path class="circle-bg"
-                            d="M18 2.0845
-                                a 15.9155 15.9155 0 0 1 0 31.831
-                                a 15.9155 15.9155 0 0 1 0 -31.831"
-                            />
-                            <path class="circle" id="cal-progress-ring"
-                            stroke-dasharray="0, 100"
-                            d="M18 2.0845
-                                a 15.9155 15.9155 0 0 1 0 31.831
-                                a 15.9155 15.9155 0 0 1 0 -31.831"
-                            />
-                        </svg>
-                        <div class="cal-text">
-                            <span class="cal-consumed" id="dash-cal-consumed">0</span>
-                            <span class="cal-target">/ <span id="dash-cal-target">2000</span> kcal</span>
-                        </div>
-                    </div>
-                    
-                    <div class="macros-summary">
-                        <div class="macro-col">
-                            <span class="m-label">Protein</span>
-                            <span class="m-val"><span id="dash-pro-in">0</span>/<span id="dash-pro-target">120</span>g</span>
-                            <div class="m-bar"><div class="m-fill pro-fill" id="bar-pro"></div></div>
-                        </div>
-                        <div class="macro-col">
-                            <span class="m-label">Carbs</span>
-                            <span class="m-val"><span id="dash-car-in">0</span>/<span id="dash-car-target">250</span>g</span>
-                            <div class="m-bar"><div class="m-fill car-fill" id="bar-car"></div></div>
-                        </div>
-                        <div class="macro-col">
-                            <span class="m-label">Fat</span>
-                            <span class="m-val"><span id="dash-fat-in">0</span>/<span id="dash-fat-target">70</span>g</span>
-                            <div class="m-bar"><div class="m-fill fat-fill" id="bar-fat"></div></div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Hydration -->
-                <div class="card glass water-card">
-                    <div class="water-header">
-                        <h3><ion-icon name="water"></ion-icon> Hydration</h3>
-                        <span id="dash-water-in">0L / 3L</span>
-                    </div>
-                    <div class="water-actions">
-                        <button class="water-btn" data-vol="250">+250ml</button>
-                        <button class="water-btn" data-vol="500">+500ml</button>
-                        <button class="water-btn" data-vol="1000">+1L</button>
-                    </div>
-                </div>
-
-                <!-- FitTrack Coach Insight -->
-                <div class="card glass coach-card">
-                    <h3><ion-icon name="bulb"></ion-icon> FitTrack Coach</h3>
-                    <p id="coach-message">You're doing well today! Log your first meal to get started.</p>
-                </div>
-
-                <!-- Quick Add Buttons -->
-                <div class="quick-add-grid">
-                    <button class="qa-btn" onclick="switchTab('food')"><ion-icon name="restaurant"></ion-icon> Food</button>
-                    <button class="qa-btn" onclick="switchTab('workout')"><ion-icon name="barbell"></ion-icon> Workout</button>
-                    <button class="qa-btn" onclick="switchTab('progress')"><ion-icon name="scale"></ion-icon> Weight</button>
-                </div>
-
-            </section>
-
-            <!-- FOOD TAB -->
-            <section id="tab-food" class="page-section hidden">
-                <h2><ion-icon name="restaurant"></ion-icon> Log Food</h2>
-                
-                <div class="card glass">
-                    <div class="input-group autocomplete-container">
-                        <input type="text" id="food-search" placeholder="Search Indian foods, fruits, snacks..." autocomplete="off">
-                        <ul id="food-suggestions" class="suggestions-list"></ul>
-                    </div>
-
-                    <div id="food-detail-panel" class="hidden">
-                        <h3 id="fd-name">Food Name</h3>
-                        <p class="text-secondary" id="fd-serving">1 serving</p>
-                        
-                        <div class="macro-preview">
-                            <div class="mp-box">🔥 <span id="fd-cal">0</span>kcal</div>
-                            <div class="mp-box">🥩 <span id="fd-pro">0</span>g</div>
-                            <div class="mp-box">🌾 <span id="fd-car">0</span>g</div>
-                            <div class="mp-box">🥑 <span id="fd-fat">0</span>g</div>
-                        </div>
-
-                        <div class="input-row" style="margin-top: 15px;">
-                            <div class="input-group">
-                                <label>Quantity</label>
-                                <input type="number" id="fd-qty" value="1" min="0.1" step="0.1">
-                            </div>
-                            <div class="input-group">
-                                <label>Meal</label>
-                                <select id="fd-meal">
-                                    <option value="Breakfast">Breakfast</option>
-                                    <option value="Lunch">Lunch</option>
-                                    <option value="Snack">Snack</option>
-                                    <option value="Dinner">Dinner</option>
-                                </select>
-                            </div>
-                        </div>
-                        <button id="btn-save-food" class="btn primary-btn full-width">Add to Log</button>
-                    </div>
-                </div>
-
-                <div class="log-timeline">
-                    <h3>Today's Meals</h3>
-                    <div id="food-log-list"></div>
-                </div>
-            </section>
-
-            <!-- WORKOUT TAB -->
-            <section id="tab-workout" class="page-section hidden">
-                <h2><ion-icon name="barbell"></ion-icon> Log Activity</h2>
-                
-                <div class="card glass">
-                    <div class="input-group autocomplete-container">
-                        <input type="text" id="activity-search" placeholder="Search exercise, sports, daily activity..." autocomplete="off">
-                        <ul id="activity-suggestions" class="suggestions-list"></ul>
-                    </div>
-
-                    <div id="activity-detail-panel" class="hidden">
-                        <h3 id="ad-name">Activity Name</h3>
-                        
-                        <div class="input-row" style="margin-top: 15px;">
-                            <div class="input-group">
-                                <label>Duration (mins)</label>
-                                <input type="number" id="ad-duration" value="30" min="1">
-                            </div>
-                            <div class="input-group">
-                                <label>Est. Burn (kcal)</label>
-                                <input type="number" id="ad-cal" readonly>
-                            </div>
-                        </div>
-                        <button id="btn-save-activity" class="btn secondary-btn full-width" style="margin-top:15px;">Log Activity</button>
-                    </div>
-                </div>
-
-                <div class="log-timeline">
-                    <h3>Today's Activities</h3>
-                    <div id="activity-log-list"></div>
-                </div>
-            </section>
-
-            <!-- PROGRESS TAB -->
-            <section id="tab-progress" class="page-section hidden">
-                <h2><ion-icon name="trending-up"></ion-icon> Progress</h2>
-                
-                <div class="card glass">
-                    <div class="progress-header">
-                        <div>
-                            <span class="text-secondary">Current Weight</span>
-                            <h3 id="prog-current-weight">0 kg</h3>
-                        </div>
-                        <div>
-                            <span class="text-secondary">Goal</span>
-                            <h3 id="prog-goal-weight">0 kg</h3>
-                        </div>
-                    </div>
-
-                    <div class="input-row" style="margin-top: 20px;">
-                        <div class="input-group">
-                            <label>Log New Weight (kg)</label>
-                            <input type="number" id="new-weight-input" step="0.1">
-                        </div>
-                        <button id="btn-save-weight" class="btn primary-btn"><ion-icon name="checkmark"></ion-icon></button>
-                    </div>
-                </div>
-
-                <div class="card glass mt-15">
-                    <h3><ion-icon name="flame"></ion-icon> Streaks</h3>
-                    <div class="streaks-grid">
-                        <div class="streak-box">
-                            <span class="s-icon">🔥</span>
-                            <span class="s-val" id="streak-days">0</span>
-                            <span class="s-label">Day Log Streak</span>
-                        </div>
-                        <div class="streak-box">
-                            <span class="s-icon">💧</span>
-                            <span class="s-val" id="streak-water">0</span>
-                            <span class="s-label">Water Goal Streak</span>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            <!-- SETTINGS TAB -->
-            <section id="tab-settings" class="page-section hidden">
-                <h2><ion-icon name="settings"></ion-icon> Settings</h2>
-                
-                <div class="card glass settings-list">
-                    <button class="settings-btn" id="btn-export-data">
-                        <ion-icon name="download-outline"></ion-icon> Export Backup (JSON)
-                    </button>
-                    
-                    <button class="settings-btn" id="btn-reset-data" style="color: var(--secondary);">
-                        <ion-icon name="trash-outline"></ion-icon> Reset All Data
-                    </button>
-                </div>
-                
-                <p class="text-secondary text-center mt-15" style="font-size:0.8rem;">
-                    FitTrack v2.0<br>
-                    Running locally on device. No data is sent to external servers.
-                </p>
-            </section>
-
-        </main>
-
-        <!-- Bottom Navigation -->
-        <nav class="bottom-nav glass">
-            <button class="nav-item active" data-tab="home">
-                <ion-icon name="home"></ion-icon>
-                <span>Home</span>
-            </button>
-            <button class="nav-item" data-tab="food">
-                <ion-icon name="restaurant"></ion-icon>
-                <span>Food</span>
-            </button>
-            <div class="nav-item-fab" onclick="switchTab('food')">
-                <div class="fab-btn"><ion-icon name="add"></ion-icon></div>
+        <!-- Calorie Core -->
+        <div class="hud-panel">
+            <div class="panel-title">
+                <span>CALORIE CORE</span>
+                <span id="date-display">TODAY</span>
             </div>
-            <button class="nav-item" data-tab="workout">
-                <ion-icon name="barbell"></ion-icon>
-                <span>Workout</span>
-            </button>
-            <button class="nav-item" data-tab="progress">
-                <ion-icon name="trending-up"></ion-icon>
-                <span>Progress</span>
-            </button>
-            <button class="nav-item" data-tab="settings">
-                <ion-icon name="settings"></ion-icon>
-                <span>Settings</span>
-            </button>
-        </nav>
+            
+            <div class="calorie-core">
+                <div class="core-ring">
+                    <svg viewBox="0 0 100 100">
+                        <circle cx="50" cy="50" r="45" class="core-bg"></circle>
+                        <circle cx="50" cy="50" r="45" class="core-progress" id="cal-ring" stroke-dasharray="0, 283"></circle>
+                    </svg>
+                    <div class="core-text">
+                        <h2 id="ui-eaten">0</h2>
+                        <span>KCAL</span>
+                    </div>
+                </div>
+                
+                <div class="core-stats">
+                    <div class="stat-box">
+                        <h4>TARGET</h4>
+                        <p id="ui-target">2000 <span>KCAL</span></p>
+                    </div>
+                    <div class="stat-box">
+                        <h4>REMAINING</h4>
+                        <p id="ui-rem">2000 <span>KCAL</span></p>
+                    </div>
+                    <div class="stat-box">
+                        <h4>COMPLETION</h4>
+                        <p id="ui-pct">0%</p>
+                    </div>
+                </div>
+            </div>
+        </div>
 
-        <!-- Toast Notification -->
-        <div id="toast" class="toast hidden">Message saved successfully</div>
+        <!-- 3 Metrics HUD -->
+        <div class="metrics-row hud-panel" style="padding: 10px;">
+            <div class="metric-hud eaten">
+                <h4>EATEN</h4>
+                <p id="ui-eaten-small">0</p>
+            </div>
+            <div class="metric-hud burned">
+                <h4>BURNED</h4>
+                <p id="ui-burned">0</p>
+            </div>
+            <div class="metric-hud net">
+                <h4>NET</h4>
+                <p id="ui-net">0</p>
+            </div>
+        </div>
+
+        <!-- Weekly Chart -->
+        <div class="hud-panel">
+            <div class="panel-title">WEEKLY CALORIE MATRIX</div>
+            <div class="chart-container">
+                <canvas id="weekly-chart"></canvas>
+            </div>
+            <div class="chart-labels">
+                <span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span><span>S</span>
+            </div>
+            <div class="chart-legend">
+                <div class="leg-item"><div class="leg-color" style="background:var(--neon-cyan)"></div> EATEN</div>
+                <div class="leg-item"><div class="leg-color" style="background:var(--neon-green)"></div> BURNED</div>
+                <div class="leg-item"><div class="leg-color" style="background:var(--neon-orange)"></div> TARGET</div>
+            </div>
+        </div>
+
+        <!-- Quick Commands -->
+        <div class="hud-panel">
+            <div class="panel-title">QUICK COMMAND</div>
+            <div class="command-grid">
+                <button class="cmd-btn" onclick="openModal('food-modal')">+ FOOD</button>
+                <button class="cmd-btn" onclick="openModal('exercise-modal')">+ EXERCISE</button>
+                <button class="cmd-btn" onclick="openModal('quick-cal-modal')">+ KCAL</button>
+                <button class="cmd-btn" onclick="openModal('weight-modal')">+ WEIGHT</button>
+                <button class="cmd-btn" onclick="openModal('settings-modal')" style="grid-column: span 2; border-color: rgba(255,255,255,0.1); color: var(--text-muted)">⚙ SETTINGS</button>
+            </div>
+        </div>
+
+        <!-- Activity Stream -->
+        <div class="hud-panel">
+            <div class="panel-title">ACTIVITY STREAM</div>
+            <div class="stream-list" id="activity-stream">
+                <!-- Injected via JS -->
+            </div>
+        </div>
 
     </div>
 
+    <!-- MODALS -->
+
+    <!-- Add Food -->
+    <div id="food-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <div class="panel-title">ADD FOOD</div>
+            <div class="input-group input-wrapper">
+                <label>FOOD NAME</label>
+                <input type="text" id="inp-food-name" autocomplete="off">
+                <div class="sugg-list" id="sugg-food"></div>
+            </div>
+            <div class="input-group">
+                <label>CALORIES</label>
+                <input type="number" id="inp-food-cal">
+            </div>
+            <div class="input-group">
+                <label>QUANTITY</label>
+                <input type="number" id="inp-food-qty" value="1" min="0.1" step="0.1">
+            </div>
+            <div class="btn-row">
+                <button class="cmd-btn cancel" onclick="closeModal('food-modal')">CANCEL</button>
+                <button class="cmd-btn" onclick="saveFood()">[ LOG FOOD ]</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Exercise -->
+    <div id="exercise-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <div class="panel-title">ADD EXERCISE</div>
+            <div class="input-group input-wrapper">
+                <label>ACTIVITY</label>
+                <input type="text" id="inp-ex-name" autocomplete="off">
+                <div class="sugg-list" id="sugg-ex"></div>
+            </div>
+            <div class="input-group">
+                <label>DURATION (MIN)</label>
+                <input type="number" id="inp-ex-dur" value="30">
+            </div>
+            <div class="input-group">
+                <label>BURNED KCAL</label>
+                <input type="number" id="inp-ex-cal">
+            </div>
+            <div class="btn-row">
+                <button class="cmd-btn cancel" onclick="closeModal('exercise-modal')">CANCEL</button>
+                <button class="cmd-btn" onclick="saveExercise()">[ LOG EXERCISE ]</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Kcal -->
+    <div id="quick-cal-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <div class="panel-title">QUICK CALORIE</div>
+            <div class="input-group">
+                <label>CALORIES</label>
+                <input type="number" id="inp-qk-cal">
+            </div>
+            <div class="btn-row">
+                <button class="cmd-btn cancel" onclick="closeModal('quick-cal-modal')">CANCEL</button>
+                <button class="cmd-btn" onclick="saveQuickCal()">[ + ADD ]</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Weight -->
+    <div id="weight-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <div class="panel-title">WEIGHT UPDATE</div>
+            <div class="input-group">
+                <label>CURRENT WEIGHT (KG)</label>
+                <input type="number" id="inp-weight" step="0.1">
+            </div>
+            <div class="btn-row">
+                <button class="cmd-btn cancel" onclick="closeModal('weight-modal')">CANCEL</button>
+                <button class="cmd-btn" onclick="saveWeight()">[ SAVE ]</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Settings -->
+    <div id="settings-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <div class="panel-title">SYSTEM SETTINGS</div>
+            <div class="input-group">
+                <label>DAILY CALORIE TARGET</label>
+                <input type="number" id="inp-target">
+            </div>
+            <div class="btn-row" style="flex-direction: column;">
+                <button class="cmd-btn" onclick="saveTarget()">[ SAVE TARGET ]</button>
+                <button class="cmd-btn" onclick="exportData()" style="color:var(--text-muted); border-color:var(--text-muted)">[ EXPORT DATA ]</button>
+                <button class="cmd-btn cancel" onclick="closeModal('settings-modal')">CLOSE</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast">SYSTEM UPDATED</div>
+
     <!-- Scripts -->
-    <script src="./utils/validation.js"></script>
-    <script src="./utils/calculations.js"></script>
     <script src="./utils/storage.js"></script>
+    <script src="./utils/calculations.js"></script>
     <script src="./food_db.js"></script>
     <script src="./activity_db.js"></script>
     <script src="./app.js"></script>

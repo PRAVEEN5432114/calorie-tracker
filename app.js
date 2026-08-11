@@ -1,508 +1,380 @@
 /**
- * FitTrack App Logic
+ * FitTrack App Logic (Sci-Fi Minimal)
  */
 
-// Service Worker Registration for PWA
-if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('./service-worker.js')
-        .then(() => console.log('Service Worker Registered'))
-        .catch(err => console.log('Service Worker Failed', err));
-}
-
-// --- DOM Elements ---
-const themeToggle = document.getElementById('theme-toggle');
-const themeIcon = document.getElementById('theme-icon');
-const navItems = document.querySelectorAll('.nav-item');
-const pageSections = document.querySelectorAll('.page-section');
-const onboardingModal = document.getElementById('onboarding-modal');
-
-// --- Global State ---
 let appData = null;
 let currentDate = new Date().toISOString().split('T')[0];
 
-// --- Initialization ---
+// --- Init ---
 function init() {
     appData = StorageUtils.getData();
-    loadTheme();
     
-    // Check if onboarding is needed
-    if (!appData.profile.isSetup) {
-        onboardingModal.classList.remove('hidden');
-    } else {
-        checkStreaks();
-        renderDashboard();
+    // Ensure today exists
+    if (!appData.days[currentDate]) {
+        appData.days[currentDate] = { foods: [], exercises: [], weight: null };
     }
+    
+    document.getElementById('date-display').textContent = new Date().toLocaleDateString('en-US', {weekday: 'short', month: 'short', day: 'numeric'}).toUpperCase();
+    document.getElementById('inp-target').value = appData.settings.calorieTarget;
     
     setupAutocompletes();
+    renderDashboard();
 }
 
-// --- Theme Management ---
-function loadTheme() {
-    const theme = appData.profile.theme || 'dark';
-    document.documentElement.setAttribute('data-theme', theme);
-    themeIcon.name = theme === 'dark' ? 'sunny-outline' : 'moon-outline';
+// --- Render Core Dashboard ---
+function renderDashboard() {
+    const today = appData.days[currentDate];
+    const target = appData.settings.calorieTarget || 2000;
+    
+    const { eaten, burned, net } = Calculations.getTotals(today);
+    const remaining = Math.max(0, target - eaten);
+    const pct = Math.min(100, Math.round((eaten / target) * 100)) || 0;
+    
+    // Update text
+    document.getElementById('ui-eaten').textContent = eaten;
+    document.getElementById('ui-eaten-small').textContent = eaten;
+    document.getElementById('ui-burned').textContent = burned;
+    document.getElementById('ui-net').textContent = net;
+    document.getElementById('ui-target').innerHTML = `${target} <span>KCAL</span>`;
+    document.getElementById('ui-rem').innerHTML = `${remaining} <span>KCAL</span>`;
+    document.getElementById('ui-pct').textContent = `${pct}%`;
+    
+    // Update SVG Ring
+    const ring = document.getElementById('cal-ring');
+    const circumference = 2 * Math.PI * 45; // 283
+    const offset = circumference - (pct / 100) * circumference;
+    ring.style.strokeDasharray = `${circumference}, ${circumference}`;
+    ring.style.strokeDashoffset = offset;
+    
+    if (eaten > target) {
+        ring.classList.add('over');
+        document.getElementById('ui-eaten').style.color = 'var(--neon-red)';
+    } else {
+        ring.classList.remove('over');
+        document.getElementById('ui-eaten').style.color = 'var(--text-main)';
+    }
+
+    renderStream(today);
+    renderChart();
 }
 
-themeToggle.addEventListener('click', () => {
-    appData.profile.theme = appData.profile.theme === 'dark' ? 'light' : 'dark';
-    StorageUtils.saveData(appData);
-    loadTheme();
-});
-
-// --- Tab Navigation ---
-window.switchTab = function(tabId) {
-    navItems.forEach(nav => nav.classList.remove('active'));
-    pageSections.forEach(sec => sec.classList.remove('active-section'));
+// --- Activity Stream ---
+function renderStream(today) {
+    const stream = document.getElementById('activity-stream');
+    let logs = [];
     
-    const activeNav = document.querySelector(`.nav-item[data-tab="${tabId}"]`);
-    if(activeNav) activeNav.classList.add('active');
+    today.foods.forEach(f => logs.push({ ...f, isFood: true, time: f.time || '00:00' }));
+    today.exercises.forEach(e => logs.push({ ...e, isFood: false, time: e.time || '00:00' }));
     
-    document.getElementById(`tab-${tabId}`).classList.add('active-section');
+    // Sort by creation time if available, otherwise just order added
+    logs.sort((a, b) => a.id - b.id);
     
-    if (tabId === 'home') renderDashboard();
-    if (tabId === 'food') renderFoodLog();
-    if (tabId === 'workout') renderActivityLog();
-    if (tabId === 'progress') renderProgress();
-};
-
-navItems.forEach(nav => {
-    nav.addEventListener('click', () => switchTab(nav.dataset.tab));
-});
-
-// --- Onboarding Logic ---
-document.getElementById('finish-setup-btn').addEventListener('click', () => {
-    const profile = {
-        isSetup: true,
-        name: document.getElementById('setup-name').value.trim(),
-        age: parseInt(document.getElementById('setup-age').value),
-        gender: document.getElementById('setup-gender').value,
-        weight: parseFloat(document.getElementById('setup-weight').value),
-        height: parseFloat(document.getElementById('setup-height').value),
-        activityLevel: document.getElementById('setup-activity').value,
-        goal: document.getElementById('setup-goal').value,
-        theme: 'dark'
-    };
-
-    const errors = Validation.validateProfile(profile);
-    if (errors.length > 0) {
-        alert(errors.join('\n'));
+    if (logs.length === 0) {
+        stream.innerHTML = `<div class="stream-item" style="justify-content:center; color:var(--text-muted)">NO DATA DETECTED</div>`;
         return;
     }
-
-    // Calculate Targets
-    const bmr = Calculations.calculateBMR(profile.gender, profile.weight, profile.height, profile.age);
-    const actMult = Calculations.getActivityMultiplier(profile.activityLevel);
-    const tdee = Calculations.calculateTDEE(bmr, actMult);
-    const targetCals = Calculations.calculateTargetCalories(tdee, profile.goal);
-    const macros = Calculations.calculateMacros(targetCals, profile.goal);
-
-    appData.profile = profile;
-    appData.targets = { calories: targetCals, ...macros };
     
-    StorageUtils.saveData(appData);
-    onboardingModal.classList.add('hidden');
-    
-    renderDashboard();
-    document.getElementById('user-greeting').textContent = `Welcome, ${profile.name} 👋`;
-    showToast("Profile set up successfully!");
-});
-
-// --- Dashboard Rendering ---
-function getTodayLog() {
-    if (!appData.dailyLogs[currentDate]) {
-        appData.dailyLogs[currentDate] = { food: [], activity: [], water: 0, weight: appData.profile.weight };
-    }
-    return appData.dailyLogs[currentDate];
+    stream.innerHTML = '';
+    logs.forEach(log => {
+        const item = document.createElement('div');
+        item.className = 'stream-item';
+        const typeStr = log.isFood ? 'FOOD' : 'EXER';
+        const nameStr = log.name || (log.isFood ? 'QUICK KCAL' : 'ACTIVITY');
+        const valStr = log.isFood ? `+${log.calories}` : `-${log.calories}`;
+        const valClass = log.isFood ? 'val-pos' : 'val-neg';
+        
+        item.innerHTML = `
+            <span class="stream-time">${typeStr}</span>
+            <span class="stream-name">${nameStr}</span>
+            <span class="stream-val ${valClass}">${valStr}</span>
+            <button class="stream-del" onclick="deleteLog(${log.id}, ${log.isFood})">×</button>
+        `;
+        stream.appendChild(item);
+    });
 }
 
-function renderDashboard() {
-    const log = getTodayLog();
-    const targets = appData.targets;
+window.deleteLog = function(id, isFood) {
+    const today = appData.days[currentDate];
+    if (isFood) {
+        today.foods = today.foods.filter(f => f.id !== id);
+    } else {
+        today.exercises = today.exercises.filter(e => e.id !== id);
+    }
+    StorageUtils.saveData(appData);
+    renderDashboard();
+    showToast("ENTRY DELETED");
+};
+
+// --- Custom Canvas Chart ---
+function renderChart() {
+    const canvas = document.getElementById('weekly-chart');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
     
-    document.getElementById('user-greeting').textContent = `Good morning, ${appData.profile.name} 👋`;
-
-    // Calculate Totals
-    let calIn = 0, proIn = 0, carIn = 0, fatIn = 0;
-    log.food.forEach(f => {
-        calIn += f.calories;
-        proIn += f.protein;
-        carIn += f.carbs;
-        fatIn += f.fat;
-    });
-
-    let calOut = log.activity.reduce((sum, a) => sum + a.calories, 0);
-    let netCals = calIn - calOut;
-
-    // Update UI
-    document.getElementById('dash-cal-consumed').textContent = Math.max(0, netCals);
-    document.getElementById('dash-cal-target').textContent = targets.calories;
+    // Setup high-DPI canvas
+    const rect = canvas.parentElement.getBoundingClientRect();
+    canvas.width = rect.width * 2;
+    canvas.height = rect.height * 2;
+    ctx.scale(2, 2);
     
-    // Ring Animation
-    const ring = document.getElementById('cal-progress-ring');
-    const pct = Math.min(100, Math.max(0, (netCals / targets.calories) * 100));
-    ring.setAttribute('stroke-dasharray', `${pct}, 100`);
-    if(pct > 100) ring.style.stroke = 'var(--secondary)';
-    else ring.style.stroke = 'var(--primary)';
-
-    // Macros UI
-    const updateMacro = (idPrefix, current, target) => {
-        document.getElementById(`dash-${idPrefix}-in`).textContent = Math.round(current);
-        document.getElementById(`dash-${idPrefix}-target`).textContent = Math.round(target);
-        document.getElementById(`bar-${idPrefix}`).style.width = `${Math.min(100, (current/target)*100)}%`;
+    const w = rect.width;
+    const h = rect.height;
+    
+    ctx.clearRect(0, 0, w, h);
+    
+    // Get last 7 days data
+    let daysData = [];
+    let d = new Date();
+    d.setDate(d.getDate() - 6); // start 6 days ago
+    
+    let maxKcal = appData.settings.calorieTarget || 2000;
+    
+    for (let i = 0; i < 7; i++) {
+        const dateStr = d.toISOString().split('T')[0];
+        const day = appData.days[dateStr];
+        let eaten = 0, burned = 0;
+        if (day) {
+            const totals = Calculations.getTotals(day);
+            eaten = totals.eaten;
+            burned = totals.burned;
+        }
+        daysData.push({ eaten, burned });
+        if (eaten > maxKcal) maxKcal = eaten;
+        d.setDate(d.getDate() + 1);
+    }
+    
+    // Add padding to max
+    maxKcal = Math.max(maxKcal * 1.2, 500); 
+    
+    const drawLine = (dataKey, color, isDashed = false) => {
+        ctx.beginPath();
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 2;
+        if (isDashed) ctx.setLineDash([5, 5]);
+        else ctx.setLineDash([]);
+        
+        ctx.lineJoin = 'round';
+        ctx.lineCap = 'round';
+        
+        for (let i = 0; i < 7; i++) {
+            const val = typeof dataKey === 'number' ? dataKey : daysData[i][dataKey];
+            const x = (w / 6) * i;
+            const y = h - ((val / maxKcal) * (h - 20)) - 10;
+            
+            if (i === 0) ctx.moveTo(x, y);
+            else ctx.lineTo(x, y);
+            
+            // Draw point
+            if (!isDashed) {
+                ctx.fillStyle = '#02060A';
+                ctx.fillRect(x - 2, y - 2, 4, 4);
+                ctx.strokeRect(x - 2, y - 2, 4, 4);
+            }
+        }
+        ctx.stroke();
+        ctx.setLineDash([]); // reset
     };
 
-    updateMacro('pro', proIn, targets.protein);
-    updateMacro('car', carIn, targets.carbs);
-    updateMacro('fat', fatIn, targets.fat);
-
-    // Water UI
-    document.getElementById('dash-water-in').textContent = `${(log.water/1000).toFixed(1)}L / ${(targets.water/1000).toFixed(1)}L`;
-
-    updateCoachInsight(netCals, targets.calories, proIn, targets.protein);
+    // Draw Target Line
+    drawLine(appData.settings.calorieTarget, 'rgba(255, 176, 0, 0.5)', true);
+    // Draw Eaten Line
+    drawLine('eaten', '#00E5FF');
+    // Draw Burned Line
+    drawLine('burned', '#00FF9C');
 }
 
-function updateCoachInsight(netCals, targetCals, proIn, targetPro) {
-    const msgEl = document.getElementById('coach-message');
-    const remaining = targetCals - netCals;
-    const proRem = targetPro - proIn;
+// --- Modals & Data Entry ---
+window.openModal = function(id) {
+    document.getElementById(id).classList.remove('hidden');
+};
 
-    if (remaining > 500) {
-        msgEl.textContent = `You have ${remaining} kcal remaining today. Make sure to eat enough to fuel your body!`;
-    } else if (remaining > 0) {
-        if (proRem > 20) {
-            msgEl.textContent = `You're close to your calorie goal. Try a high-protein snack to hit your protein target!`;
-        } else {
-            msgEl.textContent = `Great job hitting your macros today! You have ${remaining} kcal left.`;
-        }
-    } else {
-        msgEl.textContent = `You've exceeded your calorie target by ${Math.abs(remaining)} kcal. Try adding a quick walk!`;
-    }
+window.closeModal = function(id) {
+    document.getElementById(id).classList.add('hidden');
+    // Reset inputs
+    document.querySelectorAll(`#${id} input`).forEach(inp => {
+        if(inp.id !== 'inp-food-qty' && inp.id !== 'inp-ex-dur') inp.value = '';
+    });
+};
+
+function padZero(n) { return n < 10 ? '0'+n : n; }
+function getCurrentTime() {
+    const now = new Date();
+    return `${padZero(now.getHours())}:${padZero(now.getMinutes())}`;
 }
 
-// --- Autocomplete Logic ---
+window.saveFood = function() {
+    const name = document.getElementById('inp-food-name').value.trim() || 'Custom Food';
+    const cal = parseInt(document.getElementById('inp-food-cal').value);
+    const qty = parseFloat(document.getElementById('inp-food-qty').value) || 1;
+    
+    if (!cal || cal < 0) return alert('INVALID CALORIES');
+    
+    const totalCal = Math.round(cal * qty);
+    
+    appData.days[currentDate].foods.push({
+        id: Date.now(),
+        name: name,
+        calories: totalCal,
+        time: getCurrentTime()
+    });
+    
+    StorageUtils.saveData(appData);
+    closeModal('food-modal');
+    renderDashboard();
+    showToast("FOOD LOGGED");
+};
+
+window.saveQuickCal = function() {
+    const cal = parseInt(document.getElementById('inp-qk-cal').value);
+    if (!cal || cal < 0) return alert('INVALID CALORIES');
+    
+    appData.days[currentDate].foods.push({
+        id: Date.now(),
+        name: 'QUICK KCAL',
+        calories: cal,
+        time: getCurrentTime()
+    });
+    
+    StorageUtils.saveData(appData);
+    closeModal('quick-cal-modal');
+    renderDashboard();
+    showToast("CALORIES LOGGED");
+};
+
+window.saveExercise = function() {
+    const name = document.getElementById('inp-ex-name').value.trim() || 'Custom Activity';
+    const cal = parseInt(document.getElementById('inp-ex-cal').value);
+    
+    if (!cal || cal < 0) return alert('INVALID CALORIES');
+    
+    appData.days[currentDate].exercises.push({
+        id: Date.now(),
+        name: name,
+        calories: cal,
+        time: getCurrentTime()
+    });
+    
+    StorageUtils.saveData(appData);
+    closeModal('exercise-modal');
+    renderDashboard();
+    showToast("EXERCISE LOGGED");
+};
+
+window.saveWeight = function() {
+    const wt = parseFloat(document.getElementById('inp-weight').value);
+    if (!wt || wt < 0) return alert('INVALID WEIGHT');
+    
+    appData.days[currentDate].weight = wt;
+    StorageUtils.saveData(appData);
+    closeModal('weight-modal');
+    showToast("WEIGHT LOGGED");
+};
+
+window.saveTarget = function() {
+    const t = parseInt(document.getElementById('inp-target').value);
+    if (!t || t < 500) return alert('INVALID TARGET');
+    
+    appData.settings.calorieTarget = t;
+    StorageUtils.saveData(appData);
+    closeModal('settings-modal');
+    renderDashboard();
+    showToast("TARGET SAVED");
+};
+
+window.exportData = function() {
+    StorageUtils.exportData();
+};
+
+// --- Autocomplete Setup ---
+let selectedSugg = null;
 function setupAutocompletes() {
     // Food
-    const fInput = document.getElementById('food-search');
-    const fSugg = document.getElementById('food-suggestions');
-    fInput.addEventListener('input', (e) => {
+    const fInp = document.getElementById('inp-food-name');
+    const fSugg = document.getElementById('sugg-food');
+    const fCal = document.getElementById('inp-food-cal');
+    
+    fInp.addEventListener('input', (e) => {
         const val = e.target.value.toLowerCase();
         fSugg.innerHTML = '';
         if(!val) { fSugg.style.display = 'none'; return; }
         
-        const matches = window.foodDatabase.filter(item => item.name.toLowerCase().includes(val)).slice(0, 8);
-        if(matches.length > 0) {
+        const matches = window.foodDatabase.filter(x => x.name.toLowerCase().includes(val)).slice(0, 5);
+        if (matches.length > 0) {
             fSugg.style.display = 'block';
             matches.forEach(m => {
-                const li = document.createElement('li');
-                li.innerHTML = `<span>${m.name} <small class="text-secondary">(${m.serving})</small></span> <span class="text-primary" style="font-weight:600">${m.calories}kcal</span>`;
-                li.onclick = () => selectFood(m);
-                fSugg.appendChild(li);
+                const div = document.createElement('div');
+                div.className = 'sugg-item';
+                div.innerHTML = `${m.name} <span>${m.calories} KCAL</span>`;
+                div.onclick = () => {
+                    fInp.value = m.name;
+                    fCal.value = m.calories;
+                    fSugg.style.display = 'none';
+                };
+                fSugg.appendChild(div);
             });
         } else {
             fSugg.style.display = 'none';
         }
     });
 
-    // Activity
-    const aInput = document.getElementById('activity-search');
-    const aSugg = document.getElementById('activity-suggestions');
-    aInput.addEventListener('input', (e) => {
+    // Exercise
+    const eInp = document.getElementById('inp-ex-name');
+    const eSugg = document.getElementById('sugg-ex');
+    const eCal = document.getElementById('inp-ex-cal');
+    const eDur = document.getElementById('inp-ex-dur');
+    
+    let currentEx = null;
+
+    eInp.addEventListener('input', (e) => {
         const val = e.target.value.toLowerCase();
-        aSugg.innerHTML = '';
-        if(!val) { aSugg.style.display = 'none'; return; }
+        eSugg.innerHTML = '';
+        currentEx = null;
+        if(!val) { eSugg.style.display = 'none'; return; }
         
-        const matches = window.activityDatabase.filter(item => item.name.toLowerCase().includes(val)).slice(0, 8);
-        if(matches.length > 0) {
-            aSugg.style.display = 'block';
+        const matches = window.activityDatabase.filter(x => x.name.toLowerCase().includes(val)).slice(0, 5);
+        if (matches.length > 0) {
+            eSugg.style.display = 'block';
             matches.forEach(m => {
-                const li = document.createElement('li');
-                li.innerHTML = `<span>${m.name}</span> <span class="text-secondary">MET: ${m.met}</span>`;
-                li.onclick = () => selectActivity(m);
-                aSugg.appendChild(li);
+                const div = document.createElement('div');
+                div.className = 'sugg-item';
+                div.innerHTML = `${m.name} <span>~${m.caloriesPerMinute}/MIN</span>`;
+                div.onclick = () => {
+                    eInp.value = m.name;
+                    currentEx = m;
+                    updateExCal();
+                    eSugg.style.display = 'none';
+                };
+                eSugg.appendChild(div);
             });
         } else {
-            aSugg.style.display = 'none';
+            eSugg.style.display = 'none';
         }
     });
 
+    const updateExCal = () => {
+        if(currentEx) {
+            const dur = parseInt(eDur.value) || 0;
+            eCal.value = dur * currentEx.caloriesPerMinute;
+        }
+    };
+    eDur.addEventListener('input', updateExCal);
+
+    // Hide suggestions on click outside
     document.addEventListener('click', (e) => {
-        if(e.target !== fInput) fSugg.style.display = 'none';
-        if(e.target !== aInput) aSugg.style.display = 'none';
+        if(e.target !== fInp) fSugg.style.display = 'none';
+        if(e.target !== eInp) eSugg.style.display = 'none';
     });
 }
 
-// --- Food Logging ---
-let selectedFood = null;
-function selectFood(food) {
-    selectedFood = food;
-    document.getElementById('food-search').value = '';
-    document.getElementById('food-detail-panel').classList.remove('hidden');
-    
-    document.getElementById('fd-name').textContent = food.name;
-    document.getElementById('fd-serving').textContent = food.serving;
-    document.getElementById('fd-qty').value = 1;
-    
-    updateFoodPreview();
-}
-
-function updateFoodPreview() {
-    if(!selectedFood) return;
-    const qty = parseFloat(document.getElementById('fd-qty').value) || 1;
-    document.getElementById('fd-cal').textContent = Math.round(selectedFood.calories * qty);
-    document.getElementById('fd-pro').textContent = Math.round(selectedFood.protein * qty);
-    document.getElementById('fd-car').textContent = Math.round(selectedFood.carbs * qty);
-    document.getElementById('fd-fat').textContent = Math.round(selectedFood.fat * qty);
-}
-
-document.getElementById('fd-qty').addEventListener('input', updateFoodPreview);
-
-document.getElementById('btn-save-food').addEventListener('click', () => {
-    if(!selectedFood) return;
-    const qty = parseFloat(document.getElementById('fd-qty').value) || 1;
-    const meal = document.getElementById('fd-meal').value;
-    
-    const log = getTodayLog();
-    log.food.push({
-        id: Date.now(),
-        name: selectedFood.name,
-        meal: meal,
-        qty: qty,
-        calories: Math.round(selectedFood.calories * qty),
-        protein: Math.round(selectedFood.protein * qty),
-        carbs: Math.round(selectedFood.carbs * qty),
-        fat: Math.round(selectedFood.fat * qty),
-        fiber: Math.round(selectedFood.fiber * qty)
-    });
-    
-    StorageUtils.saveData(appData);
-    document.getElementById('food-detail-panel').classList.add('hidden');
-    showToast("Food added to log!");
-    renderFoodLog();
-    
-    // Update streaks
-    checkStreaks();
-});
-
-function renderFoodLog() {
-    const list = document.getElementById('food-log-list');
-    const food = getTodayLog().food;
-    
-    if(food.length === 0) {
-        list.innerHTML = `<p class="text-secondary text-center mt-15">No meals logged yet today.</p>`;
-        return;
-    }
-    
-    list.innerHTML = '';
-    food.forEach(f => {
-        const div = document.createElement('div');
-        div.className = 'log-item';
-        div.innerHTML = `
-            <div class="log-info">
-                <div class="log-icon"><ion-icon name="restaurant"></ion-icon></div>
-                <div class="log-details">
-                    <h4>${f.name}</h4>
-                    <p>${f.meal} • ${f.qty} serving(s) • P:${f.protein}g C:${f.carbs}g F:${f.fat}g</p>
-                </div>
-            </div>
-            <div>
-                <span class="log-calories">+${f.calories}</span>
-                <button class="delete-btn" onclick="deleteItem(${f.id}, 'food')"><ion-icon name="trash-outline"></ion-icon></button>
-            </div>
-        `;
-        list.appendChild(div);
-    });
-}
-
-// --- Activity Logging ---
-let selectedActivity = null;
-function selectActivity(activity) {
-    selectedActivity = activity;
-    document.getElementById('activity-search').value = '';
-    document.getElementById('activity-detail-panel').classList.remove('hidden');
-    document.getElementById('ad-name').textContent = activity.name;
-    document.getElementById('ad-duration').value = 30;
-    updateActivityPreview();
-}
-
-function updateActivityPreview() {
-    if(!selectedActivity) return;
-    const dur = parseInt(document.getElementById('ad-duration').value) || 0;
-    const weight = appData.profile.weight || 70;
-    const cals = Calculations.calculateExerciseCalories(selectedActivity.met, weight, dur);
-    document.getElementById('ad-cal').value = cals;
-}
-
-document.getElementById('ad-duration').addEventListener('input', updateActivityPreview);
-
-document.getElementById('btn-save-activity').addEventListener('click', () => {
-    if(!selectedActivity) return;
-    const dur = parseInt(document.getElementById('ad-duration').value) || 0;
-    const cals = parseInt(document.getElementById('ad-cal').value) || 0;
-    
-    const log = getTodayLog();
-    log.activity.push({
-        id: Date.now(),
-        name: selectedActivity.name,
-        duration: dur,
-        calories: cals
-    });
-    
-    StorageUtils.saveData(appData);
-    document.getElementById('activity-detail-panel').classList.add('hidden');
-    showToast("Activity logged!");
-    renderActivityLog();
-});
-
-function renderActivityLog() {
-    const list = document.getElementById('activity-log-list');
-    const act = getTodayLog().activity;
-    
-    if(act.length === 0) {
-        list.innerHTML = `<p class="text-secondary text-center mt-15">No activities logged yet.</p>`;
-        return;
-    }
-    
-    list.innerHTML = '';
-    act.forEach(a => {
-        const div = document.createElement('div');
-        div.className = 'log-item';
-        div.innerHTML = `
-            <div class="log-info">
-                <div class="log-icon" style="color:var(--secondary); background:rgba(239, 68, 68, 0.1)"><ion-icon name="flame"></ion-icon></div>
-                <div class="log-details">
-                    <h4>${a.name}</h4>
-                    <p>${a.duration} mins</p>
-                </div>
-            </div>
-            <div>
-                <span class="log-calories" style="color:var(--secondary)">-${a.calories}</span>
-                <button class="delete-btn" onclick="deleteItem(${a.id}, 'activity')"><ion-icon name="trash-outline"></ion-icon></button>
-            </div>
-        `;
-        list.appendChild(div);
-    });
-}
-
-// Delete item
-window.deleteItem = function(id, type) {
-    const log = getTodayLog();
-    log[type] = log[type].filter(item => item.id !== id);
-    StorageUtils.saveData(appData);
-    
-    if(type === 'food') renderFoodLog();
-    if(type === 'activity') renderActivityLog();
-};
-
-// --- Water Tracking ---
-document.querySelectorAll('.water-btn').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-        const vol = parseInt(e.target.dataset.vol);
-        const log = getTodayLog();
-        log.water += vol;
-        StorageUtils.saveData(appData);
-        showToast(`+${vol}ml water added!`);
-        
-        // Update dashboard directly if we are on it
-        if(document.getElementById('tab-home').classList.contains('active-section')) {
-            renderDashboard();
-        }
-        checkStreaks();
-    });
-});
-
-// --- Progress & Weight ---
-function renderProgress() {
-    const current = appData.profile.weight;
-    const goal = appData.profile.goalWeight || 0;
-    
-    document.getElementById('prog-current-weight').textContent = `${current} kg`;
-    document.getElementById('prog-goal-weight').textContent = goal ? `${goal} kg` : 'Not Set';
-    
-    document.getElementById('streak-days').textContent = calculateLogStreak();
-    document.getElementById('streak-water').textContent = calculateWaterStreak();
-}
-
-document.getElementById('btn-save-weight').addEventListener('click', () => {
-    const newWt = parseFloat(document.getElementById('new-weight-input').value);
-    if(newWt > 0) {
-        appData.profile.weight = newWt;
-        getTodayLog().weight = newWt;
-        StorageUtils.saveData(appData);
-        
-        // Recalculate targets based on new weight
-        const bmr = Calculations.calculateBMR(appData.profile.gender, newWt, appData.profile.height, appData.profile.age);
-        const actMult = Calculations.getActivityMultiplier(appData.profile.activityLevel);
-        const tdee = Calculations.calculateTDEE(bmr, actMult);
-        const targetCals = Calculations.calculateTargetCalories(tdee, appData.profile.goal);
-        const macros = Calculations.calculateMacros(targetCals, appData.profile.goal);
-        
-        appData.targets = { calories: targetCals, ...macros };
-        StorageUtils.saveData(appData);
-
-        renderProgress();
-        showToast("Weight updated!");
-        document.getElementById('new-weight-input').value = '';
-    }
-});
-
-// --- Streaks Logic ---
-function calculateLogStreak() {
-    let streak = 0;
-    let d = new Date();
-    while(true) {
-        const ds = d.toISOString().split('T')[0];
-        if(appData.dailyLogs[ds] && appData.dailyLogs[ds].food.length > 0) {
-            streak++;
-            d.setDate(d.getDate() - 1);
-        } else {
-            break;
-        }
-    }
-    return streak;
-}
-
-function calculateWaterStreak() {
-    let streak = 0;
-    let d = new Date();
-    const target = appData.targets.water || 3000;
-    while(true) {
-        const ds = d.toISOString().split('T')[0];
-        if(appData.dailyLogs[ds] && appData.dailyLogs[ds].water >= target) {
-            streak++;
-            d.setDate(d.getDate() - 1);
-        } else {
-            break;
-        }
-    }
-    return streak;
-}
-
-function checkStreaks() {
-    // Only visual update logic can go here, actual logic is calculated on demand in renderProgress
-}
-
-
-// --- Settings ---
-document.getElementById('btn-export-data').addEventListener('click', () => {
-    StorageUtils.exportData();
-});
-
-document.getElementById('btn-reset-data').addEventListener('click', () => {
-    if(confirm("Are you sure you want to delete all local data? This cannot be undone.")) {
-        StorageUtils.resetData();
-        location.reload();
-    }
-});
-
-// --- Toast Util ---
+// --- Toast ---
 function showToast(msg) {
     const toast = document.getElementById('toast');
     toast.textContent = msg;
-    toast.classList.remove('hidden');
+    toast.classList.add('show');
     setTimeout(() => {
-        toast.classList.add('hidden');
-    }, 3000);
+        toast.classList.remove('show');
+    }, 2000);
 }
 
-// Start App
+// Init
 init();
