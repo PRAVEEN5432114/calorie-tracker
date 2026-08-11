@@ -2,6 +2,12 @@
  * FitTrack App Logic (Sci-Fi Minimal)
  */
 
+if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('./service-worker.js')
+        .then(() => console.log('SW Registered'))
+        .catch(err => console.log('SW Failed', err));
+}
+
 let appData = null;
 let currentDate = new Date().toISOString().split('T')[0];
 
@@ -305,7 +311,8 @@ function setupAutocompletes() {
                 const div = document.createElement('div');
                 div.className = 'sugg-item';
                 div.innerHTML = `${m.name} <span>${m.calories} KCAL</span>`;
-                div.onclick = () => {
+                div.onpointerdown = (ev) => {
+                    ev.preventDefault(); // Prevents input blur on mobile
                     fInp.value = m.name;
                     fCal.value = m.calories;
                     fSugg.style.display = 'none';
@@ -338,7 +345,8 @@ function setupAutocompletes() {
                 const div = document.createElement('div');
                 div.className = 'sugg-item';
                 div.innerHTML = `${m.name} <span>~${m.caloriesPerMinute}/MIN</span>`;
-                div.onclick = () => {
+                div.onpointerdown = (ev) => {
+                    ev.preventDefault();
                     eInp.value = m.name;
                     currentEx = m;
                     updateExCal();
